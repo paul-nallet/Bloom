@@ -163,11 +163,11 @@ export default function OnboardingScreen({ navigation }: Props) {
       scrollRef.current?.scrollTo({ x: width * (index + 1), animated: true });
       return;
     }
-    navigation.replace("Home");
+    navigation.replace("RootTabs");
   };
 
   const skip = () => {
-    navigation.replace("Home");
+    navigation.replace("RootTabs");
   };
 
   return (
