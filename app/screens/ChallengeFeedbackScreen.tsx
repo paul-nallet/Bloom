@@ -4,7 +4,9 @@ import { ScrollView, Text, TextInput, View } from "react-native";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import ScaleSelector from "../components/ScaleSelector";
+import { getChallengeById } from "../data/challenges";
 import { useChallengeStore } from "../store/challengeStore";
+import { useJournalStore } from "../store/journalStore";
 import type { EnergyLevel } from "../types/challenge";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -13,9 +15,11 @@ type Props = NativeStackScreenProps<RootStackParamList, "ChallengeFeedback">;
 export default function ChallengeFeedbackScreen({ navigation }: Props) {
   const session = useChallengeStore((s) => s.session);
   const saveFeedback = useChallengeStore((s) => s.saveFeedback);
+  const addEntryFromFeedback = useJournalStore((s) => s.addEntryFromFeedback);
 
   const [score, setScore] = useState<EnergyLevel | undefined>(session?.feedbackScore);
   const [note, setNote] = useState(session?.feedbackNote ?? "");
+  const challenge = getChallengeById(session?.challengeId);
 
   if (!session) {
     return (
@@ -28,6 +32,11 @@ export default function ChallengeFeedbackScreen({ navigation }: Props) {
 
   const handleSave = () => {
     saveFeedback(score, note);
+    addEntryFromFeedback({
+      challengeTitle: challenge?.title,
+      score,
+      note,
+    });
     navigation.replace("RootTabs");
   };
 

@@ -2,6 +2,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
+import { Flower, Sprout } from "lucide-react-native";
 import colors from "./app/theme/colors";
 import HomeScreen from "./app/screens/HomeScreen";
 import JournalScreen from "./app/screens/JournalScreen";
@@ -26,8 +27,27 @@ function RootTabs() {
         tabBarInactiveTintColor: colors.textSecondary,
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: "Bloom" }} />
-      <Tab.Screen name="Journal" component={JournalScreen} options={{ title: "Journal" }} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: "Bloom",
+          tabBarLabel: "Accueil",
+          tabBarIcon: ({ color, size }) => (
+            <Flower color={color} size={size} strokeWidth={1.5} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Journal"
+        component={JournalScreen}
+        options={{
+          title: "Journal",
+          tabBarIcon: ({ color, size }) => (
+            <Sprout color={color} size={size} strokeWidth={1.5} />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }

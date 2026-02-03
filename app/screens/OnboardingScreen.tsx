@@ -18,6 +18,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+import Svg, { Defs, Filter, FeGaussianBlur, Path, Pattern, Rect } from "react-native-svg";
 import Button from "../components/Button";
 import colors from "../theme/colors";
 import type { RootStackParamList } from "../types/navigation";
@@ -38,6 +39,99 @@ const PAGES = [
     subtitle: "Un journal calme pour revenir quand tu veux.",
   },
 ];
+
+const BLOB_PATHS = [
+  "M44 42C63 16 99 8 130 22C162 36 191 52 186 89C181 126 152 150 118 150C84 150 50 144 28 118C6 92 25 68 44 42Z",
+  "M32 58C50 28 83 12 118 18C153 24 190 42 192 78C194 114 165 148 126 150C87 152 46 146 26 120C6 94 14 88 32 58Z",
+  "M38 44C60 18 96 6 132 20C168 34 194 58 186 94C178 130 144 152 108 150C72 148 36 132 22 106C8 80 16 70 38 44Z",
+];
+
+const GRAIN_DOTS = [
+  { x: 6, y: 8, s: 1, o: 0.18 },
+  { x: 18, y: 12, s: 1.2, o: 0.14 },
+  { x: 28, y: 6, s: 0.9, o: 0.2 },
+  { x: 44, y: 16, s: 1.1, o: 0.15 },
+  { x: 58, y: 10, s: 1, o: 0.12 },
+  { x: 70, y: 18, s: 1.3, o: 0.16 },
+  { x: 8, y: 32, s: 1, o: 0.14 },
+  { x: 22, y: 28, s: 1.1, o: 0.2 },
+  { x: 36, y: 34, s: 0.9, o: 0.12 },
+  { x: 52, y: 30, s: 1.2, o: 0.15 },
+  { x: 66, y: 28, s: 1, o: 0.18 },
+  { x: 74, y: 40, s: 1.1, o: 0.16 },
+  { x: 10, y: 52, s: 1.2, o: 0.14 },
+  { x: 20, y: 48, s: 0.9, o: 0.19 },
+  { x: 34, y: 54, s: 1, o: 0.16 },
+  { x: 46, y: 48, s: 1.2, o: 0.14 },
+  { x: 60, y: 54, s: 1, o: 0.2 },
+  { x: 72, y: 50, s: 1.1, o: 0.15 },
+  { x: 14, y: 66, s: 1, o: 0.12 },
+  { x: 26, y: 70, s: 1.1, o: 0.18 },
+  { x: 40, y: 64, s: 0.9, o: 0.16 },
+  { x: 56, y: 68, s: 1.2, o: 0.14 },
+  { x: 68, y: 72, s: 1, o: 0.2 },
+  { x: 76, y: 64, s: 1.1, o: 0.16 },
+];
+
+const Blob = ({
+  id,
+  width,
+  height,
+  color,
+  opacity,
+  blur,
+  path,
+}: {
+  id: string;
+  width: number;
+  height: number;
+  color: string;
+  opacity: number;
+  blur: number;
+  path: string;
+}) => (
+  <Svg
+    width={width}
+    height={height}
+    viewBox="0 0 200 160"
+    style={{ overflow: "visible" }}
+  >
+    <Defs>
+      <Filter
+        id={`blur-${id}`}
+        x="-50%"
+        y="-50%"
+        width="200%"
+        height="200%"
+        filterUnits="userSpaceOnUse"
+      >
+        <FeGaussianBlur stdDeviation={blur} />
+      </Filter>
+    </Defs>
+    <Path d={path} fill={color} opacity={opacity} filter={`url(#blur-${id})`} />
+  </Svg>
+);
+
+const GrainOverlay = () => (
+  <Svg width="100%" height="100%" style={styles.grain}>
+    <Defs>
+      <Pattern id="grain-pattern" width={80} height={80} patternUnits="userSpaceOnUse">
+        {GRAIN_DOTS.map((dot, index) => (
+          <Rect
+            key={`grain-${index}`}
+            x={dot.x}
+            y={dot.y}
+            width={dot.s}
+            height={dot.s}
+            fill="#000"
+            opacity={dot.o}
+          />
+        ))}
+      </Pattern>
+    </Defs>
+    <Rect width="100%" height="100%" fill="url(#grain-pattern)" opacity={0.12} />
+  </Svg>
+);
 
 export default function OnboardingScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
@@ -61,17 +155,17 @@ export default function OnboardingScreen({ navigation }: Props) {
 
   useEffect(() => {
     spinOne.value = withRepeat(
-      withTiming(360, { duration: 16000, easing: Easing.linear }),
+      withTiming(360, { duration: 26000, easing: Easing.linear }),
       -1,
       false
     );
     spinTwo.value = withRepeat(
-      withTiming(-360, { duration: 22000, easing: Easing.linear }),
+      withTiming(-360, { duration: 34000, easing: Easing.inOut(Easing.linear) }),
       -1,
       false
     );
     spinThree.value = withRepeat(
-      withTiming(360, { duration: 12000, easing: Easing.linear }),
+      withTiming(360, { duration: 20000, easing: Easing.cubic }),
       -1,
       false
     );
@@ -87,12 +181,12 @@ export default function OnboardingScreen({ navigation }: Props) {
     const pw = pageWidth.value || 1;
     const base = interpolate(
       scrollX.value,
-      [0, pw, pw * 2],
-      [-18, 26, -12],
+      [0, pw, pw * -2],
+      [-18, 26, 2],
       Extrapolate.CLAMP
     );
-    const phase = (scrollX.value / pw) * Math.PI + 0.6;
-    const wobble = Math.sin(phase) * 9;
+    const phase = (scrollX.value / pw) * Math.PI + 0.3;
+    const wobble = Math.sin(phase) * 30;
     const driftPhase = drift.value * Math.PI * 2;
     const translateX = Math.sin(phase) * 24 + Math.sin(driftPhase) * 6;
     const translateY = Math.cos(phase) * 18 + Math.cos(driftPhase) * 6;
@@ -112,17 +206,17 @@ export default function OnboardingScreen({ navigation }: Props) {
     const pw = pageWidth.value || 1;
     const base = interpolate(
       scrollX.value,
-      [0, pw, pw * 2],
+      [0, pw, pw * 6],
       [22, -18, 32],
-      Extrapolate.CLAMP
+      'identity'
     );
-    const phase = (scrollX.value / pw) * Math.PI + 1.7;
-    const wobble = Math.sin(phase) * 8;
+    const phase = (scrollX.value / pw) * Math.PI - 1.2;
+    const wobble = Math.sin(phase) * 60;
     const driftPhase = drift.value * Math.PI * 2 + 1.2;
     const translateX = Math.cos(phase) * -26 + Math.sin(driftPhase) * 7;
-    const translateY = Math.sin(phase) * 20 + Math.cos(driftPhase) * 6;
-    const scale = 1 + Math.cos(phase) * 0.11 + Math.sin(driftPhase) * 0.03;
-    const rotate = base + wobble + spinTwo.value + 35;
+    const translateY = Math.sin(phase) * 20 + Math.cos(driftPhase) * .5;
+    const scale = 1 + Math.cos(phase) * 0.40 + Math.sin(driftPhase) * 0.30;
+    const rotate = base + wobble + spinTwo.value + 15;
     return {
       transform: [
         { translateX },
@@ -141,12 +235,12 @@ export default function OnboardingScreen({ navigation }: Props) {
       [-14, 18, -28],
       Extrapolate.CLAMP
     );
-    const phase = (scrollX.value / pw) * Math.PI + 2.6;
-    const wobble = Math.sin(phase) * 10;
+    const phase = (scrollX.value / pw) * Math.PI + 2.4;
+    const wobble = Math.sin(phase) * 90;
     const driftPhase = drift.value * Math.PI * 2 + 2.4;
     const translateX = Math.sin(phase) * 22 + Math.sin(driftPhase) * 6;
-    const translateY = Math.cos(phase) * -24 + Math.cos(driftPhase) * 6;
-    const scale = 1 + Math.sin(phase) * 0.1 + Math.cos(driftPhase) * 0.03;
+    const translateY = Math.cos(phase) * -24 + Math.cos(driftPhase) * 9;
+    const scale = 1 + Math.sin(phase) * 0.6 + Math.cos(driftPhase) * 0.3;
     const rotate = base + wobble + spinThree.value - 25;
     return {
       transform: [
@@ -188,11 +282,42 @@ export default function OnboardingScreen({ navigation }: Props) {
         </Pressable>
       </View>
 
-      <View className="px-6">
-        <View className="h-56 mb-8">
-          <Animated.View style={[styles.circle, styles.circleOne, circleOneAnim]} />
-          <Animated.View style={[styles.circle, styles.circleTwo, circleTwoAnim]} />
-          <Animated.View style={[styles.circle, styles.circleThree, circleThreeAnim]} />
+      <View className="px-6" style={styles.hero}>
+        <View className="h-56 mb-8" pointerEvents="none">
+          <Animated.View style={[styles.blob, styles.blobOne, circleOneAnim]}>
+            <Blob
+              id="one"
+              width={220}
+              height={400}
+              color={colors.accent}
+              opacity={0.55}
+              blur={10}
+              path={BLOB_PATHS[0]}
+            />
+          </Animated.View>
+          <Animated.View style={[styles.blob, styles.blobTwo, circleTwoAnim]}>
+            <Blob
+              id="two"
+              width={400}
+              height={400}
+              color={colors.muted}
+              opacity={0.55}
+              blur={10}
+              path={BLOB_PATHS[1]}
+            />
+          </Animated.View>
+          <Animated.View style={[styles.blob, styles.blobThree, circleThreeAnim]}>
+            <Blob
+              id="three"
+              width={400}
+              height={400}
+              color={colors.surface}
+              opacity={0.6}
+              blur={10}
+              path={BLOB_PATHS[2]}
+            />
+          </Animated.View>
+          <GrainOverlay />
         </View>
       </View>
 
@@ -222,9 +347,8 @@ export default function OnboardingScreen({ navigation }: Props) {
           {PAGES.map((_, dotIndex) => (
             <View
               key={`dot-${dotIndex}`}
-              className={`h-2 w-2 rounded-full ${
-                dotIndex === index ? "bg-textPrimary" : "bg-border"
-              }`}
+              className={`h-2 w-2 rounded-full ${dotIndex === index ? "bg-textPrimary" : "bg-border"
+                }`}
             />
           ))}
         </View>
@@ -235,52 +359,41 @@ export default function OnboardingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  circle: {
-    position: "absolute",
-  },
   topRow: {
     minHeight: 36,
+    position: "relative",
+    zIndex: 2,
   },
   skipHidden: {
     opacity: 0,
   },
-  circleOne: {
-    width: 220,
-    height: 150,
-    backgroundColor: colors.accent,
-    borderRadius: 999,
-    borderTopLeftRadius: 140,
-    borderTopRightRadius: 120,
-    borderBottomRightRadius: 160,
-    borderBottomLeftRadius: 110,
+  hero: {
+    position: "relative",
+    zIndex: 0,
+  },
+  grain: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.12,
+  },
+  blob: {
+    position: "absolute",
+  },
+  blobOne: {
+    width: 400,
+    height: 400,
     top: 10,
     left: 20,
-    opacity: 0.5,
   },
-  circleTwo: {
-    width: 170,
-    height: 210,
-    backgroundColor: colors.muted,
-    borderRadius: 999,
-    borderTopLeftRadius: 150,
-    borderTopRightRadius: 170,
-    borderBottomRightRadius: 140,
-    borderBottomLeftRadius: 160,
-    top: 60,
+  blobTwo: {
+    width: 400,
+    height: 400,
+    top: 80,
     right: 10,
-    opacity: 0.6,
   },
-  circleThree: {
-    width: 200,
-    height: 130,
-    backgroundColor: colors.surface,
-    borderRadius: 999,
-    borderTopLeftRadius: 150,
-    borderTopRightRadius: 130,
-    borderBottomRightRadius: 140,
-    borderBottomLeftRadius: 120,
+  blobThree: {
+    width: 400,
+    height: 400,
     bottom: 0,
-    left: 120,
-    opacity: 0.8,
+    left: 0,
   },
 });
