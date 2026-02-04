@@ -5,9 +5,10 @@ import { useEffect } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Button from "../components/Button";
 import Card from "../components/Card";
-import { getDailyPhrase } from "../data/dailyPhrases";
 import { getChallengeById } from "../data/challenges";
+import { getGoalById } from "../data/goals";
 import { useChallengeStore } from "../store/challengeStore";
+import { useProfileStore } from "../store/profileStore";
 import type { RootStackParamList, RootTabParamList } from "../types/navigation";
 import { getDateKey } from "../utils/date";
 
@@ -20,9 +21,9 @@ export default function HomeScreen({ navigation }: Props) {
   const initForToday = useChallengeStore((s) => s.initForToday);
   const suggestion = useChallengeStore((s) => s.suggestion);
   const session = useChallengeStore((s) => s.session);
-  const abandonChallenge = useChallengeStore((s) => s.abandonChallenge);
   const completeChallenge = useChallengeStore((s) => s.completeChallenge);
   const resetForDebug = useChallengeStore((s) => s.resetForDebug);
+  const goalId = useProfileStore((s) => s.goalId);
 
   useEffect(() => {
     initForToday();
@@ -34,14 +35,28 @@ export default function HomeScreen({ navigation }: Props) {
     !!session?.completedAt && getDateKey(new Date(session.completedAt)) === today;
   const skippedToday = suggestion?.skippedUntil === today;
   const activeChallenge = getChallengeById(session?.challengeId);
+  const suggestedChallenge = getChallengeById(suggestion?.challengeId);
+  const goal = getGoalById(goalId);
 
-  const showRitualCard = !hasActiveSession && !completedToday && !skippedToday;
+  const hasSuggestion =
+    !!suggestion && suggestion.dateKey === today && suggestion.skippedUntil !== today;
+  const experienceTitle = hasActiveSession
+    ? activeChallenge?.title ?? "À choisir"
+    : hasSuggestion
+    ? suggestedChallenge?.title ?? "À choisir"
+    : "À choisir";
 
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="p-5 gap-6">
-      <View className="gap-2">
-        <Text className="text-2xl text-textPrimary">Bloom</Text>
-        <Text className="text-base text-textSecondary">{getDailyPhrase()}</Text>
+      <View className="gap-4">
+        <View className="gap-1">
+          <Text className="text-xs text-textSecondary">Objectif</Text>
+          <Text className="text-2xl text-textPrimary">{goal?.title ?? "À choisir"}</Text>
+        </View>
+        <View className="gap-1">
+          <Text className="text-xs text-textSecondary">Expérience du jour</Text>
+          <Text className="text-base text-textPrimary">{experienceTitle}</Text>
+        </View>
       </View>
 
       {hasActiveSession ? (
@@ -58,38 +73,43 @@ export default function HomeScreen({ navigation }: Props) {
           )}
           <View className="gap-2">
             <Button
+              label="Continuer"
+              onPress={() => navigation.navigate("ChallengeInProgress")}
+            />
+            <Button
               label="Défi réalisé"
+              tone="ghost"
               onPress={() => {
                 completeChallenge();
                 navigation.navigate("ChallengeFeedback");
               }}
             />
-            <Button
-              label="Continuer"
-              tone="ghost"
-              onPress={() => navigation.navigate("ChallengeInProgress")}
-            />
           </View>
-          <Pressable
-            onPress={() => {
-              abandonChallenge();
-            }}
-            className="mt-3"
-            accessibilityRole="button"
-          >
-            <Text className="text-sm text-textSecondary text-center">Arrêter ici</Text>
-          </Pressable>
         </Card>
-      ) : null}
-
-      {showRitualCard ? (
+      ) : completedToday || skippedToday ? (
+        <Card title="À demain">
+          <Text className="text-sm text-textSecondary">
+            C’est fait pour aujourd’hui. On se retrouve demain.
+          </Text>
+        </Card>
+      ) : hasSuggestion ? (
+        <Card title="Suggestion du jour">
+          <Text className="text-sm text-textSecondary mb-2">
+            {suggestedChallenge?.title ?? "Une expérience douce"}
+          </Text>
+          <Text className="text-xs text-textSecondary mb-4">
+            {suggestedChallenge?.durationMin ?? 5} min
+          </Text>
+          <Button label="Reprendre le rituel" onPress={() => navigation.navigate("Ritual")} />
+        </Card>
+      ) : (
         <Card title="Ton moment du jour">
           <Text className="text-sm text-textSecondary mb-4">
             Si tu veux, on peut commencer doucement.
           </Text>
           <Button label="Commencer mon rituel" onPress={() => navigation.navigate("Ritual")} />
         </Card>
-      ) : null}
+      )}
 
       {__DEV__ ? (
         <Pressable

@@ -9,4 +9,5 @@ export type RootStackParamList = {
 export type RootTabParamList = {
   Home: undefined;
   Journal: undefined;
+  Reset: undefined;
 };

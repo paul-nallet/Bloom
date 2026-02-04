@@ -30,6 +30,8 @@ export interface ChallengeSession {
   acceptedAt: string;
   completedAt?: string;
   abandonedAt?: string;
+  abandonReason?: string;
+  abandonNote?: string;
   feedbackScore?: EnergyLevel;
   feedbackNote?: string;
   feedbackAt?: string;

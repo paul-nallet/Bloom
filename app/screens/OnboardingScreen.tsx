@@ -20,23 +20,38 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Defs, Filter, FeGaussianBlur, Path, Pattern, Rect } from "react-native-svg";
 import Button from "../components/Button";
+import { DEFAULT_GOAL_ID, GOALS } from "../data/goals";
+import { useProfileStore } from "../store/profileStore";
 import colors from "../theme/colors";
 import type { RootStackParamList } from "../types/navigation";
+import type { GoalId } from "../types/goal";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Onboarding">;
 
-const PAGES = [
+type Page =
+  | { type: "intro"; title: string; subtitle: string }
+  | { type: "goal"; title: string; subtitle: string };
+
+const PAGES: Page[] = [
   {
+    type: "intro",
     title: "Bienvenue dans Bloom",
     subtitle: "Un rituel doux, 10 minutes maximum. Rien d’obligatoire.",
   },
   {
+    type: "intro",
     title: "Écouter ton humeur",
     subtitle: "Choisis ce qui te parle, à ton rythme.",
   },
   {
+    type: "intro",
     title: "Déposer quelques mots",
     subtitle: "Un journal calme pour revenir quand tu veux.",
+  },
+  {
+    type: "goal",
+    title: "Choisis ton objectif",
+    subtitle: "Un seul pour commencer, doucement.",
   },
 ];
 
@@ -137,6 +152,10 @@ export default function OnboardingScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<any>(null);
   const [index, setIndex] = useState(0);
+  const [selectedGoalId, setSelectedGoalId] = useState<GoalId>(DEFAULT_GOAL_ID);
+
+  const setGoal = useProfileStore((s) => s.setGoal);
+  const completeOnboarding = useProfileStore((s) => s.completeOnboarding);
 
   const scrollX = useSharedValue(0);
   const pageWidth = useSharedValue(width);
@@ -257,10 +276,14 @@ export default function OnboardingScreen({ navigation }: Props) {
       scrollRef.current?.scrollTo({ x: width * (index + 1), animated: true });
       return;
     }
+    setGoal(selectedGoalId);
+    completeOnboarding();
     navigation.replace("RootTabs");
   };
 
   const skip = () => {
+    setGoal(DEFAULT_GOAL_ID);
+    completeOnboarding();
     navigation.replace("RootTabs");
   };
 
@@ -337,7 +360,31 @@ export default function OnboardingScreen({ navigation }: Props) {
         {PAGES.map((page) => (
           <View key={page.title} style={{ width }} className="px-6">
             <Text className="text-2xl text-textPrimary mb-3">{page.title}</Text>
-            <Text className="text-base text-textSecondary">{page.subtitle}</Text>
+            <Text className="text-base text-textSecondary mb-6">{page.subtitle}</Text>
+
+            {page.type === "goal" ? (
+              <View className="gap-3">
+                {GOALS.map((goal) => {
+                  const isSelected = goal.id === selectedGoalId;
+                  return (
+                    <Pressable
+                      key={goal.id}
+                      onPress={() => setSelectedGoalId(goal.id)}
+                      className={`border rounded-2xl p-4 ${
+                        isSelected ? "border-textPrimary bg-muted" : "border-border bg-surface"
+                      }`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                    >
+                      <Text className="text-base text-textPrimary">{goal.title}</Text>
+                      <Text className="text-xs text-textSecondary mt-1">
+                        {isSelected ? "Sélectionné" : "Choisir cet objectif"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
           </View>
         ))}
       </Animated.ScrollView>

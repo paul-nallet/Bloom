@@ -12,6 +12,12 @@ interface JournalState {
     score?: EnergyLevel;
     note?: string;
   }) => void;
+  addEntryFromAbandon: (input: {
+    challengeTitle?: string;
+    reason: string;
+    note?: string;
+  }) => void;
+  resetJournal: () => void;
 }
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -55,6 +61,29 @@ export const useJournalStore = create<JournalState>()(
           feedbackScore: score,
         };
         set((state) => ({ entries: [entry, ...state.entries] }));
+      },
+      addEntryFromAbandon: ({ challengeTitle, reason, note }) => {
+        const trimmedReason = reason.trim();
+        if (!trimmedReason) {
+          return;
+        }
+        const trimmedNote = note?.trim();
+        const lines = [`Pourquoi : ${trimmedReason}`];
+        if (trimmedNote) {
+          lines.push(trimmedNote);
+        }
+        const entry: JournalEntry = {
+          id: createId(),
+          title: challengeTitle || "Expérience du jour",
+          text: lines.join("\n"),
+          createdAt: new Date().toISOString(),
+          source: "abandon",
+          abandonReason: trimmedReason,
+        };
+        set((state) => ({ entries: [entry, ...state.entries] }));
+      },
+      resetJournal: () => {
+        set(() => ({ entries: [] }));
       },
     }),
     {

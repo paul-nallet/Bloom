@@ -1,4 +1,7 @@
 import type { Challenge, DailyContext } from "../types/challenge";
+import type { ExperimentPreferences } from "../types/experiment";
+import type { GoalId } from "../types/goal";
+import { getGoalById } from "./goals";
 import { daysSince } from "../utils/date";
 
 export const CHALLENGES: Challenge[] = [
@@ -202,6 +205,126 @@ export const CHALLENGES: Challenge[] = [
     energy: "medium",
     prompt: "Faire rouler les épaules lentement pour relâcher la tension.",
   },
+  {
+    id: "creative-scribble",
+    title: "Gribouillage libre",
+    category: "reflection",
+    durationMin: 5,
+    energy: "low",
+    prompt: "Gribouiller des formes sans but, juste pour laisser venir.",
+  },
+  {
+    id: "creative-idea",
+    title: "Une idée folle",
+    category: "mental",
+    durationMin: 3,
+    energy: "low",
+    prompt: "Noter une idée absurde sans la juger.",
+  },
+  {
+    id: "creative-object",
+    title: "Trois usages",
+    category: "reflection",
+    durationMin: 5,
+    energy: "medium",
+    prompt: "Choisir un objet et imaginer 3 usages inattendus.",
+  },
+  {
+    id: "calm-breath",
+    title: "Respiration 4‑6",
+    category: "rest",
+    durationMin: 3,
+    energy: "low",
+    prompt: "Inspire 4, expire 6, quelques cycles tranquilles.",
+  },
+  {
+    id: "calm-jaw",
+    title: "Détendre la mâchoire",
+    category: "mental",
+    durationMin: 3,
+    energy: "low",
+    prompt: "Relâcher la mâchoire, sentir les épaules se poser.",
+  },
+  {
+    id: "calm-light",
+    title: "Lumière douce",
+    category: "rest",
+    durationMin: 5,
+    energy: "low",
+    prompt: "S’asseoir près d’une lumière douce, juste respirer.",
+  },
+  {
+    id: "gentle-hands",
+    title: "Secouer les mains",
+    category: "movement",
+    durationMin: 3,
+    energy: "low",
+    prompt: "Secouer doucement les mains pour relancer l’énergie.",
+  },
+  {
+    id: "gentle-walk",
+    title: "Marche consciente",
+    category: "movement",
+    durationMin: 7,
+    energy: "medium",
+    prompt: "Marcher lentement, en sentant chaque pas.",
+  },
+  {
+    id: "gentle-stretch",
+    title: "Étirements fluides",
+    category: "movement",
+    durationMin: 5,
+    energy: "medium",
+    prompt: "Étirements lents, sans forcer.",
+  },
+  {
+    id: "clarity-3",
+    title: "Trois priorités",
+    category: "reflection",
+    durationMin: 5,
+    energy: "low",
+    prompt: "Noter 3 choses importantes pour aujourd’hui.",
+  },
+  {
+    id: "clarity-dump",
+    title: "Vider la tête",
+    category: "reflection",
+    durationMin: 5,
+    energy: "low",
+    prompt: "Écrire tout ce qui tourne dans la tête, sans trier.",
+  },
+  {
+    id: "clarity-true",
+    title: "Ce qui compte",
+    category: "mental",
+    durationMin: 3,
+    energy: "low",
+    prompt: "Nommer une chose qui compte vraiment là, maintenant.",
+  },
+  {
+    id: "connect-message",
+    title: "Message doux",
+    category: "reflection",
+    durationMin: 3,
+    energy: "low",
+    prompt: "Envoyer un petit message bienveillant à quelqu’un.",
+  },
+  {
+    id: "connect-memory",
+    title: "Souvenir partagé",
+    category: "mental",
+    durationMin: 5,
+    energy: "low",
+    prompt: "Se remémorer un moment partagé qui fait du bien.",
+  },
+  {
+    id: "connect-gratitude",
+    title: "Merci silencieux",
+    category: "mental",
+    durationMin: 3,
+    energy: "low",
+    prompt: "Penser à quelqu’un et lui dire merci intérieurement.",
+  },
 ];
 
 const pickRandom = (items: Challenge[]) => {
@@ -217,34 +340,92 @@ export const getChallengeById = (id?: string) =>
 
 export const selectChallenge = (
   context: DailyContext,
-  excludeIds: string[] = []
+  excludeIds: string[] = [],
+  goalId?: GoalId,
+  preferences?: ExperimentPreferences
 ) => {
   const mood = context.mood ?? 3;
   const energy = context.energy ?? 3;
   const inactiveDays = daysSince(context.lastAcceptedAt);
 
-  let candidates = CHALLENGES.filter((challenge) => !excludeIds.includes(challenge.id));
+  const baseCandidates = CHALLENGES.filter(
+    (challenge) => !excludeIds.includes(challenge.id)
+  );
+  let candidates = baseCandidates;
+  const goal = goalId ? getGoalById(goalId) : null;
 
-  if (mood <= 2) {
-    candidates = candidates.filter(
-      (challenge) =>
-        (challenge.category === "rest" || challenge.category === "mental") &&
-        challenge.durationMin <= 5
+  if (goal?.categories?.length) {
+    const goalCandidates = candidates.filter((challenge) =>
+      goal.categories.includes(challenge.category)
     );
-  }
-
-  if (mood >= 4) {
-    candidates = candidates.filter(
-      (challenge) =>
-        challenge.category === "movement" || challenge.category === "reflection"
-    );
-  }
-
-  if (energy <= 2) {
-    const lowEnergy = candidates.filter((challenge) => challenge.energy === "low");
-    if (lowEnergy.length) {
-      candidates = lowEnergy;
+    if (goalCandidates.length) {
+      candidates = goalCandidates;
     }
+  }
+
+  const preferenceCandidates = (() => {
+    if (!preferences) {
+      return candidates;
+    }
+    let filtered = candidates;
+    if (preferences.preferredCategories?.length) {
+      filtered = filtered.filter((challenge) =>
+        preferences.preferredCategories?.includes(challenge.category)
+      );
+    }
+    if (preferences.durationPreference) {
+      if (preferences.durationPreference === "short") {
+        filtered = filtered.filter((challenge) => challenge.durationMin <= 5);
+      } else if (preferences.durationPreference === "medium") {
+        filtered = filtered.filter(
+          (challenge) => challenge.durationMin >= 5 && challenge.durationMin <= 7
+        );
+      } else if (preferences.durationPreference === "long") {
+        filtered = filtered.filter((challenge) => challenge.durationMin >= 7);
+      }
+    }
+    if (preferences.energyPreference && preferences.energyPreference !== "any") {
+      filtered = filtered.filter(
+        (challenge) => challenge.energy === preferences.energyPreference
+      );
+    }
+    return filtered;
+  })();
+
+  if (preferenceCandidates.length) {
+    candidates = preferenceCandidates;
+  }
+
+  const moodFiltered = (() => {
+    let filtered = candidates;
+    if (mood <= 2) {
+      filtered = filtered.filter(
+        (challenge) =>
+          (challenge.category === "rest" || challenge.category === "mental") &&
+          challenge.durationMin <= 5
+      );
+    }
+
+    if (mood >= 4) {
+      filtered = filtered.filter(
+        (challenge) =>
+          challenge.category === "movement" || challenge.category === "reflection"
+      );
+    }
+
+    if (energy <= 2) {
+      const lowEnergy = filtered.filter((challenge) => challenge.energy === "low");
+      if (lowEnergy.length) {
+        filtered = lowEnergy;
+      }
+    }
+    return filtered;
+  })();
+
+  if (moodFiltered.length) {
+    candidates = moodFiltered;
+  } else if (preferenceCandidates.length) {
+    candidates = preferenceCandidates;
   }
 
   if (inactiveDays > 3) {
@@ -253,7 +434,14 @@ export const selectChallenge = (
   }
 
   if (!candidates.length) {
-    candidates = CHALLENGES.filter((challenge) => !excludeIds.includes(challenge.id));
+    if (goal?.categories?.length) {
+      const goalCandidates = baseCandidates.filter((challenge) =>
+        goal.categories.includes(challenge.category)
+      );
+      candidates = goalCandidates.length ? goalCandidates : baseCandidates;
+    } else {
+      candidates = baseCandidates.length ? baseCandidates : CHALLENGES;
+    }
   }
 
   return pickRandom(candidates) ?? CHALLENGES[0] ?? null;
